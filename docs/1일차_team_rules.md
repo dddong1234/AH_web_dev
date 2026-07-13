@@ -1,4 +1,4 @@
-##  7조 team_rules
+##  7조 team_rules!!!!!
 
 ## 구성원
 팀장 : 신동훈
