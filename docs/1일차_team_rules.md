@@ -1,6 +1,8 @@
+
+##  7조 team_rules!!!!!
+
 ## Git & Github Rules
 마음대로 메인으로 푸시하지 않기
-# 7조 Team Rules
 
 ## 1. 상의없는 merge 금지
 꼭 팀원들과 공유 후 main branch로 merge 하기.
