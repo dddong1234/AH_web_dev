@@ -34,6 +34,9 @@ user_list = [
 	}
 ]
 
+
+
+
 #==========================[모든 회원 조회 api]===============================#
 class UserResponse(BaseModel):
     id: int
@@ -51,6 +54,19 @@ def get_users():
     return user_list
   
   
+#==========================[특정 회원 조회 api]===============================#
+@router.get("/users/{user_id}")
+async def get_user(user_id: int):
+    for user in user_list:
+        if user["id"] == user_id:
+            return {
+                "id": user["id"],
+                "name": user["name"],
+                "age": user["age"],
+                "email": user["email"]
+            }
+    raise HTTPException(status_code=404, detail="유효한 id가 아닙니다.")
+
   
 #==========================[회원생성 api]===============================#
 class UserSignUpRequest(BaseModel):
@@ -191,3 +207,12 @@ def update_user(
         "age": target_user["age"],
         "email": target_user["email"],
     }
+
+#==========================[특정 회원 삭제 api]===============================#
+@router.delete("/users/{user_id}")
+async def delete_user(user_id: int):
+    for index, user in enumerate(user_list):
+        if user["id"] == user_id:
+            user_list.pop(index)
+            return {"message": "회원 정보가 성공적으로 삭제되었습니다.", "deleted_id": user_id}
+    raise HTTPException(status_code=404, detail="유효한 id가 아닙니다.")
