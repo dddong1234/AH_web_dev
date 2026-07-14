@@ -22,3 +22,19 @@ user_list = [
 		"password": "lwsPAssword12@"
 	}
 ]
+
+
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    age: int
+    email: str
+
+# 1. 모든 회원의 정보를 목록으로 조회하는 API
+@app.get(
+    "/users",
+    summary = "전체 사용자 조회 API",
+    response_model = list[UserResponse]
+)
+def get_users():
+    return user_list
