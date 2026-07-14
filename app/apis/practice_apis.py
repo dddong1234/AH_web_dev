@@ -1,6 +1,11 @@
 import re
-from fastapi import FastAPI
+from fastapi import APIRouter
 from pydantic import BaseModel, field_validator, Field
+
+router = APIRouter(
+    prefix="/practice_api",
+    tags=["Practice API"],
+)
 
 user_list = [
 	{
@@ -51,9 +56,9 @@ class UserSignUpRequest(BaseModel):
         return email
 
 
-@app.post(
+@router.post(
     "/users",
-    summary = "회원 생성 API",
+    summary="회원 생성 API",
 )
 def create_user(user: UserSignUpRequest):
     new_id = max(
