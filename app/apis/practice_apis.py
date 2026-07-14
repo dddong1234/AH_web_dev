@@ -1,5 +1,3 @@
-# app/apis/practice_apis.py
-
 import re
 
 from fastapi import APIRouter, HTTPException
@@ -10,6 +8,7 @@ router = APIRouter(
     prefix="/practice_api",
     tags=["Practice API"],
 )
+
 
 user_list = [
 	{
@@ -35,7 +34,24 @@ user_list = [
 	}
 ]
 
+#==========================[모든 회원 조회 api]===============================#
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    age: int
+    email: str
 
+
+@router.get(
+    "/users",
+    summary="전체 사용자 조회 API",
+    response_model=list[UserResponse],
+)
+def get_users():
+    return user_list
+  
+  
+  
 #==========================[회원생성 api]===============================#
 class UserSignUpRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=10)
