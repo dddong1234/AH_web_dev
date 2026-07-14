@@ -1,4 +1,13 @@
-# app/apis/practice_apis.py
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+
+router = APIRouter(
+    prefix="/practice_api",
+    tags=["Practice API"],
+)
+
+
 user_list = [
 	{
 		"id": 1,
@@ -31,10 +40,10 @@ class UserResponse(BaseModel):
     email: str
 
 # 1. 모든 회원의 정보를 목록으로 조회하는 API
-@app.get(
+@router.get(
     "/users",
-    summary = "전체 사용자 조회 API",
-    response_model = list[UserResponse]
+    summary="전체 사용자 조회 API",
+    response_model=list[UserResponse],
 )
 def get_users():
     return user_list
