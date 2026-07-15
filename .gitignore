@@ -21,3 +21,6 @@ envs/
 .env
 
 .python-version
+
+# macOS-generated files
+.DS_Store
