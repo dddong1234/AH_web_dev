@@ -187,7 +187,7 @@ Status Code: 200 OK
 | 필드명 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | current_password | string | Y | 현재 사용 중인 비밀번호 |
-| new_password | string | Y | 새로 사용할 비밀번호 |호
+| new_password | string | Y | 새로 사용할 비밀번호 |
 
 ### 성공 응답
 - Status Code: 200 OK
