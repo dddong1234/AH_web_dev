@@ -6,7 +6,7 @@
 | --- | --- |
 | API 이름 | 사용자 회원탈퇴 API |
 | 설명 | 본인 계정의 회원탈퇴(영구 삭제) API |
-| 엔드포인트(Endpoint) | `/api/v1/auth/signout` |
+| 엔드포인트(Endpoint) | `/api/v1/auth/me` |
 | 메서드(Method) | `DELETE` |
 | 인증 필요 여부 | Y |
 
