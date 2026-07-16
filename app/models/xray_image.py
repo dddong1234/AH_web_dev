@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.db.databases import Base
 
 if TYPE_CHECKING:
-    from app.models.medical_record import MedicalRecord
+    from app.models.medical_records import MedicalRecord
     from app.models.users import User
 
 
