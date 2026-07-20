@@ -3,8 +3,10 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.exceptions import (
+    EmailAlreadyExistsError,
     InactiveUserError,
     InvalidCredentialsError,
+    PhoneNumberAlreadyExistsError,
     RefreshTokenRevokedError,
     UserNotFoundError,
 )
@@ -17,8 +19,10 @@ from app.core.security.jwt import (
     get_user_id_from_payload,
     hash_token,
 )
-from app.core.security.password import verify_password
+from app.core.security.password import hash_password, verify_password
+from app.models.users import User
 from app.repositories.auth_repository import AuthRepository
+from app.schemas.auth import SignUpRequest
 
 
 @dataclass
@@ -30,6 +34,31 @@ class LoginResult:
 
 
 class AuthService:
+    @staticmethod
+    async def signup(db: AsyncSession, request: SignUpRequest) -> User:
+        existing_email_user = await AuthRepository.get_user_by_email(db=db, email=request.email)
+        if existing_email_user is not None:
+            raise EmailAlreadyExistsError()
+
+        existing_phone_user = await AuthRepository.get_user_by_phone_number(
+            db=db,
+            phone_number=request.phone_number,
+        )
+        if existing_phone_user is not None:
+            raise PhoneNumberAlreadyExistsError()
+
+        user = await AuthRepository.create_user(
+            db=db,
+            email=request.email,
+            hashed_password=hash_password(request.password),
+            name=request.name,
+            department=request.department,
+            gender=request.gender,
+            phone_number=request.phone_number,
+        )
+        await db.commit()
+        return user
+
     @staticmethod
     async def login(db: AsyncSession, email: str, password: str) -> LoginResult:
         user = await AuthRepository.get_user_by_email(db=db, email=email)
@@ -101,4 +130,9 @@ class AuthService:
             return
 
         await AuthRepository.revoke_refresh_token(db=db, refresh_token=refresh_token_record)
+        await db.commit()
+
+    @staticmethod
+    async def signout(db: AsyncSession, user: User) -> None:
+        await AuthRepository.delete_user(db=db, user=user)
         await db.commit()

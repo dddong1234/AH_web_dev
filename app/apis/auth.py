@@ -9,7 +9,14 @@ from app.core.db.databases import async_get_db
 from app.core.security.constants import REFRESH_COOKIE_KEY
 from app.core.security.cookies import clear_refresh_token_cookie, set_refresh_token_cookie
 from app.models.users import User
-from app.schemas.auth import LoginRequest, TokenPayload, TokenResponse
+from app.schemas.auth import (
+    LoginRequest,
+    SignUpRequest,
+    TokenPayload,
+    TokenResponse,
+    UserResponse,
+)
+from app.schemas.common import DataResponse
 from app.services.auth_service import AuthService
 
 
@@ -17,6 +24,19 @@ router = APIRouter(
     prefix="/api/v1/auth",
     tags=["Auth"],
 )
+
+
+@router.post(
+    "/signup",
+    status_code=status.HTTP_201_CREATED,
+    response_model=DataResponse[UserResponse],
+)
+async def signup(
+    request: SignUpRequest,
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> DataResponse[UserResponse]:
+    user = await AuthService.signup(db=db, request=request)
+    return DataResponse(data=UserResponse.model_validate(user))
 
 
 @router.post(
@@ -82,3 +102,16 @@ async def logout(
     clear_refresh_token_cookie(response)
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
+
+
+@router.delete(
+    "/signout",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def signout(
+    response: Response,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+) -> None:
+    await AuthService.signout(db=db, user=current_user)
+    clear_refresh_token_cookie(response)
