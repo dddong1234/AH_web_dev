@@ -1,0 +1,6 @@
+ACCESS_TOKEN_TYPE = "access"
+REFRESH_TOKEN_TYPE = "refresh"
+REFRESH_COOKIE_KEY = "refresh_token"
+REFRESH_COOKIE_PATH = "/api/v1/auth"
+TOKEN_TYPE_CLAIM = "type"
+USER_ID_CLAIM = "user_id"
