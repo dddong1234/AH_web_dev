@@ -3,10 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Cookie, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import get_current_active_user
 from app.core.auth.exceptions import RefreshTokenRequiredError
 from app.core.db.databases import async_get_db
 from app.core.security.constants import REFRESH_COOKIE_KEY
-from app.core.security.cookies import set_refresh_token_cookie
+from app.core.security.cookies import clear_refresh_token_cookie, set_refresh_token_cookie
+from app.models.users import User
 from app.schemas.auth import LoginRequest, TokenPayload, TokenResponse
 from app.services.auth_service import AuthService
 
@@ -64,3 +66,19 @@ async def refresh(
             expires_in=refresh_result.expires_in,
         )
     )
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def logout(
+    response: Response,
+    db: Annotated[AsyncSession, Depends(async_get_db)],
+    _: Annotated[User, Depends(get_current_active_user)],
+    refresh_token: Annotated[str | None, Cookie(alias=REFRESH_COOKIE_KEY)] = None,
+) -> Response:
+    await AuthService.logout(db=db, refresh_token=refresh_token)
+    clear_refresh_token_cookie(response)
+    response.status_code = status.HTTP_204_NO_CONTENT
+    return response

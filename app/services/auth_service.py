@@ -86,3 +86,19 @@ class AuthService:
             token_type="bearer",
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
+
+    @staticmethod
+    async def logout(db: AsyncSession, refresh_token: str | None) -> None:
+        if refresh_token is None:
+            return
+
+        refresh_token_record = await AuthRepository.get_refresh_token_by_hash(
+            db=db,
+            token_hash=hash_token(refresh_token),
+        )
+
+        if refresh_token_record is None or refresh_token_record.revoked_at is not None:
+            return
+
+        await AuthRepository.revoke_refresh_token(db=db, refresh_token=refresh_token_record)
+        await db.commit()

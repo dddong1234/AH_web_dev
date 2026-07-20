@@ -24,3 +24,6 @@ envs/
 
 # macOS-generated files
 .DS_Store
+
+# Local verification artifacts
+cookies.txt
