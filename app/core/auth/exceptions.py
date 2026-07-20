@@ -78,3 +78,22 @@ class PermissionDeniedError(AppBaseException):
     status_code = 403
     code = "PERMISSION_DENIED"
     message = "접근 권한이 없습니다."
+
+
+class EmailAlreadyExistsError(AppBaseException):
+    status_code = 409
+    code = "EMAIL_ALREADY_EXISTS"
+    message = "이미 사용 중인 이메일 주소입니다."
+
+
+class PhoneNumberAlreadyExistsError(AppBaseException):
+    status_code = 409
+    code = "PHONE_NUMBER_ALREADY_EXISTS"
+    message = "이미 사용 중인 휴대폰 번호입니다."
+
+
+class RequestTimeoutError(AppBaseException):
+    status_code = 504
+    code = "REQUEST_TIMEOUT"
+    message = "요청 처리 시간이 허용 시간(3초)을 초과하였습니다."
+
