@@ -2,12 +2,19 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth.exceptions import InactiveUserError, InvalidCredentialsError
+from app.core.auth.exceptions import (
+    InactiveUserError,
+    InvalidCredentialsError,
+    RefreshTokenRevokedError,
+    UserNotFoundError,
+)
 from app.core.config import settings
 from app.core.security.jwt import (
     create_access_token,
     create_refresh_token,
+    decode_refresh_token,
     get_refresh_token_expires_at,
+    get_user_id_from_payload,
     hash_token,
 )
 from app.core.security.password import verify_password
@@ -48,6 +55,33 @@ class AuthService:
 
         return LoginResult(
             access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
+
+    @staticmethod
+    async def refresh(db: AsyncSession, refresh_token: str) -> LoginResult:
+        payload = decode_refresh_token(refresh_token)
+        refresh_token_record = await AuthRepository.get_refresh_token_by_hash(
+            db=db,
+            token_hash=hash_token(refresh_token),
+        )
+
+        if refresh_token_record is None or refresh_token_record.revoked_at is not None:
+            raise RefreshTokenRevokedError()
+
+        user_id = get_user_id_from_payload(payload)
+        user = await AuthRepository.get_user_by_id(db=db, user_id=user_id)
+
+        if user is None:
+            raise UserNotFoundError()
+
+        if not user.is_active:
+            raise InactiveUserError()
+
+        return LoginResult(
+            access_token=create_access_token(user_id=user.id),
             refresh_token=refresh_token,
             token_type="bearer",
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
