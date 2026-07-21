@@ -1,13 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.apis.dependencies import require_medical_staff_or_admin
+from app.apis.dependencies import require_medical_staff_or_admin, require_staff_or_admin
 from app.core.db.databases import async_get_db
+from app.models.enums import Gender
 from app.models.users import User
 from app.schemas.common import ErrorResponse
-from app.schemas.patient import PatientCreateRequest, PatientResponse
+from app.schemas.patient import PatientCreateRequest, PatientListQuery, PatientListResponse, PatientResponse
 from app.services.patient_service import PatientService
 
 
@@ -18,6 +19,7 @@ router = APIRouter(
 
 DbSession = Annotated[AsyncSession, Depends(async_get_db)]
 CurrentMedicalUser = Annotated[User, Depends(require_medical_staff_or_admin)]
+CurrentStaffUser = Annotated[User, Depends(require_staff_or_admin)]
 
 
 ERROR_RESPONSES = {
@@ -54,3 +56,31 @@ async def create_patient(
 ) -> PatientResponse:
     patient = await PatientService.create_patient(db=db, request=request)
     return PatientResponse.model_validate(patient)
+
+
+@router.get(
+    "",
+    status_code=status.HTTP_200_OK,
+    summary="환자 목록 조회 API",
+    response_model=PatientListResponse,
+    responses=ERROR_RESPONSES,
+)
+async def get_patients(
+    db: DbSession,
+    _current_user: CurrentStaffUser,
+    name: Annotated[str | None, Query(max_length=50)] = None,
+    gender: Gender | None = None,
+    min_age: Annotated[int | None, Query(ge=0, le=150)] = None,
+    max_age: Annotated[int | None, Query(ge=0, le=150)] = None,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> PatientListResponse:
+    query = PatientListQuery(
+        name=name,
+        gender=gender,
+        min_age=min_age,
+        max_age=max_age,
+        offset=offset,
+        limit=limit,
+    )
+    return await PatientService.get_patients(db=db, query=query)
