@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.apis.dependencies import require_medical_staff_or_admin, require_staff_or_admin
+from app.apis.dependencies import get_patient_or_404, require_medical_staff_or_admin, require_staff_or_admin
 from app.core.db.databases import async_get_db
 from app.models.enums import Gender
+from app.models.patients import Patients
 from app.models.users import User
 from app.schemas.common import ErrorResponse
 from app.schemas.patient import PatientCreateRequest, PatientListQuery, PatientListResponse, PatientResponse
@@ -30,6 +31,10 @@ ERROR_RESPONSES = {
     403: {
         "model": ErrorResponse,
         "description": "권한 부족",
+    },
+    404: {
+        "model": ErrorResponse,
+        "description": "환자 없음",
     },
     422: {
         "model": ErrorResponse,
@@ -84,3 +89,18 @@ async def get_patients(
         limit=limit,
     )
     return await PatientService.get_patients(db=db, query=query)
+
+
+@router.get(
+    "/{patient_id}",
+    status_code=status.HTTP_200_OK,
+    summary="환자 상세 조회 API",
+    response_model=PatientResponse,
+    responses=ERROR_RESPONSES,
+)
+async def get_patient_detail(
+    _current_user: CurrentStaffUser,
+    patient: Annotated[Patients, Depends(get_patient_or_404)],
+    patient_id: Annotated[int, Path(ge=1, description="조회 대상 환자 ID")],
+) -> PatientResponse:
+    return PatientResponse.model_validate(patient)
