@@ -1,10 +1,15 @@
 from datetime import datetime
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import BigInteger, DateTime, Enum, SmallInteger, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db.databases import Base
 from .enums import Gender
+
+if TYPE_CHECKING:
+    from app.models.medical_records import MedicalRecord
 
 
 class Patients(Base):
@@ -17,7 +22,7 @@ class Patients(Base):
     )
 
     name: Mapped[str] = mapped_column(
-        String(30),
+        String(50),
         nullable=False,
     )
 
@@ -32,7 +37,7 @@ class Patients(Base):
     )
 
     phone: Mapped[str] = mapped_column(
-        String(11),
+        String(20),
         nullable=False,
     )
 
@@ -48,7 +53,9 @@ class Patients(Base):
         onupdate=func.now(),
     )
 
-    medical_records = relationship(
+    medical_records: Mapped[list["MedicalRecord"]] = relationship(
         "MedicalRecord",
         back_populates="patient",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

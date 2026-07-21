@@ -17,7 +17,7 @@ class MedicalRecord(Base):
 
     patient_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("patients.id"),
+        ForeignKey("patients.id", ondelete="CASCADE"),
         nullable=False,
     )
 
@@ -52,5 +52,6 @@ class MedicalRecord(Base):
     xray_images = relationship(
         "XrayImage",
         back_populates="record",
+        cascade="all, delete-orphan",
         passive_deletes=True,
     )
