@@ -1,7 +1,9 @@
 from app.apis.auth import router as auth_router
+from app.apis.patients import router as patients_router
 from app.apis.practice_apis import router as practice_router
 
 __all__ = [
     "auth_router",
+    "patients_router",
     "practice_router",
 ]
