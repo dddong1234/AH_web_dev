@@ -73,8 +73,8 @@
 
     ```json
     {
-      "code": "UNAUTHORIZED",
-      "message": "인증 토큰이 유효하지 않거나 만료되었습니다."
+      "code": "AUTHENTICATION_REQUIRED",
+      "message": "로그인이 필요합니다."
     }
     ```
 
@@ -82,8 +82,8 @@
 
     ```json
     {
-      "code": "FORBIDDEN",
-      "message": "사내 의료인 권한이 필요합니다."
+      "code": "PERMISSION_DENIED",
+      "message": "접근 권한이 없습니다."
     }
     ```
 

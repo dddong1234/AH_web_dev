@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.exceptions import (
@@ -17,17 +17,16 @@ from app.models.users import User
 from app.repositories.auth_repository import AuthRepository
 
 
-http_bearer = HTTPBearer(auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 
 async def get_current_user(
-    auth: Annotated[HTTPAuthorizationCredentials | None, Depends(http_bearer)],
+    token: Annotated[str | None, Depends(oauth2_scheme)],
     db: Annotated[AsyncSession, Depends(async_get_db)],
 ) -> User:
-    if auth is None or not auth.credentials:
+    if token is None:
         raise AuthenticationRequiredError()
 
-    token = auth.credentials
     payload = decode_access_token(token)
     user_id = get_user_id_from_payload(payload)
     user = await AuthRepository.get_user_by_id(db=db, user_id=user_id)
