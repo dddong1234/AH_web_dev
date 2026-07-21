@@ -68,3 +68,28 @@ class PatientListItem(PatientResponse):
 
 class PatientListResponse(OffsetLimitPage[PatientListItem]):
     pass
+
+
+class PatientListQuery(BaseModel):
+    name: str | None = None
+    gender: Gender | None = None
+    min_age: int | None = Field(default=None, ge=0, le=150)
+    max_age: int | None = Field(default=None, ge=0, le=150)
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=20, ge=1, le=100)
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def normalize_name(cls, value: object) -> object:
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
+        return value
+
+    @model_validator(mode="after")
+    def validate_age_range(self) -> "PatientListQuery":
+        if self.min_age is not None and self.max_age is not None and self.min_age > self.max_age:
+            raise ValueError("min_age는 max_age보다 클 수 없습니다.")
+        return self
