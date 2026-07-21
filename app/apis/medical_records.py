@@ -6,7 +6,7 @@ from app.core.db.databases import async_get_db
 from app.models.patients import Patients
 from app.models.users import User
 from app.schemas.common import ErrorResponse
-from app.schemas.medical_record import MedicalRecordResponse
+from app.schemas.medical_record import MedicalRecordCreateData, MedicalRecordResponse
 from app.services.medical_record_service import MedicalRecordService
 
 router = APIRouter(prefix="/api/v1/patients", tags=["Medical Records"])
@@ -15,27 +15,27 @@ router = APIRouter(prefix="/api/v1/patients", tags=["Medical Records"])
 ERROR_RESPONSES = {
     401: {
         "model": ErrorResponse,
-        "description": "인증 실패 (AUTHENTICATION_REQUIRED)",
+        "description": "AUTHENTICATION_REQUIRED (로그인 필요)",
     },
     403: {
         "model": ErrorResponse,
-        "description": "사내 의료인 권한 없음 (PERMISSION_DENIED)",
+        "description": "PERMISSION_DENIED (접근 권한 없음)",
     },
     404: {
         "model": ErrorResponse,
-        "description": "환자 찾을 수 없음 (PATIENT_NOT_FOUND)",
+        "description": "PATIENT_NOT_FOUND (환자를 찾을 수 없음)",
     },
     409: {
         "model": ErrorResponse,
-        "description": "차트 번호 중복 (DUPLICATE_CHART_NUMBER)",
+        "description": "DUPLICATE_CHART_NUMBER (차트 번호 중복)",
     },
     422: {
         "model": ErrorResponse,
-        "description": "X-Ray 파일 유효성 검증 실패 (INVALID_XRAY_FILE / XRAY_FILE_TOO_LARGE)",
+        "description": "INVALID_XRAY_FILE / XRAY_FILE_TOO_LARGE / VALIDATION_ERROR (파일 검증 및 입력 데이터 유효성 검증 실패)",
     },
     504: {
         "model": ErrorResponse,
-        "description": "요청 시간 초과 (REQUEST_TIMEOUT)",
+        "description": "REQUEST_TIMEOUT (요청 시간 3초 초과)",
     },
 }
 
@@ -55,6 +55,9 @@ async def create_medical_record(
     db: AsyncSession = Depends(async_get_db),
     current_user: User = Depends(require_medical_staff_or_admin),
 ):
+    # Pydantic 스키마 검증(공백 제거 strip_whitespace=True, 길이 제약 min/max_length) 적용
+    MedicalRecordCreateData(chart_number=chart_number, symptoms=symptoms)
+
     return await MedicalRecordService.create_medical_record(
         db=db,
         patient_id=patient.id,
