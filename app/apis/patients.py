@@ -89,8 +89,6 @@ async def get_patients(
         limit=limit,
     )
     return await PatientService.get_patients(db=db, query=query)
-
-
 @router.get(
     "/{patient_id}",
     status_code=status.HTTP_200_OK,
