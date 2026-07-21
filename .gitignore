@@ -27,3 +27,7 @@ envs/
 
 # Local verification artifacts
 cookies.txt
+
+# Uploads & Media files
+uploads/
+media/
