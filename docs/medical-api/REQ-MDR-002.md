@@ -106,11 +106,30 @@ Accept: application/json
 | Status Code | 오류 코드 | 발생 조건 |
 | --- | --- | --- |
 | `401 Unauthorized` | `AUTHENTICATION_REQUIRED` | Authorization Header가 없음 |
-| `401 Unauthorized` | `INVALID_TOKEN` | Access Token이 유효하지 않거나 만료됨 |
+| `401 Unauthorized` | `INVALID_ACCESS_TOKEN` | Access Token이 유효하지 않음 |
+| `401 Unauthorized` | `ACCESS_TOKEN_EXPIRED` | Access Token이 만료됨 |
 | `403 Forbidden` | `PERMISSION_DENIED` | `PENDING` 사용자가 접근함 |
 | `404 Not Found` | `PATIENT_NOT_FOUND` | `patient_id`에 해당하는 환자가 없음 |
 | `422 Unprocessable Entity` | `VALIDATION_ERROR` | Path 또는 Query Parameter 검증 실패 |
 | `500 Internal Server Error` | `INTERNAL_SERVER_ERROR` | 서버 내부 오류 |
+
+### 유효하지 않은 Access Token 응답 예시
+
+```json
+{
+  "code": "INVALID_ACCESS_TOKEN",
+  "message": "유효하지 않은 Access Token입니다."
+}
+```
+
+### 만료된 Access Token 응답 예시
+
+```json
+{
+  "code": "ACCESS_TOKEN_EXPIRED",
+  "message": "Access Token이 만료되었습니다."
+}
+```
 
 ### 404 응답 예시
 
@@ -126,7 +145,7 @@ Accept: application/json
 ```json
 {
   "code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters"
+  "message": "요청 데이터 유효성 검증에 실패했습니다."
 }
 ```
 
