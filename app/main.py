@@ -8,6 +8,7 @@ from starlette.staticfiles import StaticFiles
 from app.apis.admin_users import router as admin_users_router
 from app.apis.auth import router as auth_router
 from app.apis.practice_apis import router as practice_router
+from app.apis.patient_edit_delete import router as patient_edit_delete_router
 from app.apis.users import router as users_router
 from app.core.auth import register_exception_handlers
 
@@ -17,6 +18,7 @@ app.include_router(auth_router)
 app.include_router(practice_router)
 app.include_router(users_router)
 app.include_router(admin_users_router)
+app.include_router(patient_edit_delete_router)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

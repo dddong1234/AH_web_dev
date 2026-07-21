@@ -17,33 +17,20 @@ class PatientEditDeleteService:
         patient: Patients,
         request: PatientUpdateRequest,
     ) -> PatientResponse:
-        try:
-            # 실제 요청에 포함된 필드만 수정한다.
-            update_data = request.model_dump(exclude_unset=True)
+            try:
+                update_data = request.model_dump(exclude_unset=True)
 
-            for field, value in update_data.items():
-                setattr(patient, field, value)
+                for field, value in update_data.items():
+                    setattr(patient, field, value)
 
-            await db.commit()
-            await db.refresh(patient)
+                await db.commit()
+                await db.refresh(patient)
 
-        except SQLAlchemyError as exc:
-            await db.rollback()
-            raise AppBaseException() from exc
+            except SQLAlchemyError as exc:
+                await db.rollback()
+                raise AppBaseException() from exc
 
-        return PatientResponse(
-            id=patient.id,
-            name=patient.name,
-            age=patient.age,
-            gender=patient.gender,
-            phone=patient.phone,
-            created_at=patient.created_at.isoformat(),
-            updated_at=(
-                patient.updated_at.isoformat()
-                if patient.updated_at is not None
-                else None
-            ),
-        )
+            return PatientResponse.model_validate(patient)
 
     @staticmethod
     async def delete_patient(

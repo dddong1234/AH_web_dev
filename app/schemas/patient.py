@@ -1,5 +1,5 @@
+from datetime import datetime
 from typing import Annotated
-
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 from app.models.enums import Gender
@@ -56,8 +56,8 @@ class PatientResponse(BaseModel):
     age: int
     gender: Gender
     phone: str
-    created_at: str
-    updated_at: str | None
+    created_at: datetime
+    updated_at: datetime | None
 
     model_config = ConfigDict(from_attributes=True)
 
