@@ -102,3 +102,45 @@ class RequestTimeoutError(AppBaseException):
     status_code = 504
     code = "REQUEST_TIMEOUT"
     message = "요청 처리 시간이 허용 시간(3초)을 초과하였습니다."
+
+
+class PatientNotFoundError(AppBaseException):
+    status_code = 404
+    code = "PATIENT_NOT_FOUND"
+    message = "Patient not found"
+
+
+class MedicalRecordNotFoundError(AppBaseException):
+    status_code = 404
+    code = "MEDICAL_RECORD_NOT_FOUND"
+    message = "Medical record not found"
+
+
+class DuplicateChartNumberError(AppBaseException):
+    status_code = 409
+    code = "DUPLICATE_CHART_NUMBER"
+    message = "Chart number already exists"
+
+
+class InvalidXrayFileError(AppBaseException):
+    status_code = 422
+    code = "INVALID_XRAY_FILE"
+    message = "Only JPG, JPEG and PNG files are allowed"
+
+
+class XrayFileTooLargeError(AppBaseException):
+    status_code = 422
+    code = "XRAY_FILE_TOO_LARGE"
+    message = "X-Ray image must be 10MB or smaller"
+
+
+class EmptyUpdatePayloadError(AppBaseException):
+    status_code = 422
+    code = "EMPTY_UPDATE_PAYLOAD"
+    message = "At least one field is required"
+
+
+class FileStorageError(AppBaseException):
+    status_code = 500
+    code = "FILE_STORAGE_ERROR"
+    message = "Failed to store X-Ray image"
