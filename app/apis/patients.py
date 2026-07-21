@@ -1,15 +1,26 @@
 from typing import Annotated
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.apis.dependencies import get_patient_or_404, require_medical_staff_or_admin, require_staff_or_admin
+from app.apis.dependencies import (
+    get_patient_or_404,
+    require_medical_staff_or_admin,
+    require_staff_or_admin,
+)
 from app.core.db.databases import async_get_db
 from app.models.enums import Gender
 from app.models.patients import Patients
 from app.models.users import User
 from app.schemas.common import ErrorResponse
-from app.schemas.patient import PatientCreateRequest, PatientListQuery, PatientListResponse, PatientResponse
+from app.schemas.patient import (
+    PatientCreateRequest,
+    PatientListQuery,
+    PatientListResponse,
+    PatientResponse,
+)
 from app.services.patient_service import PatientService
 
 
