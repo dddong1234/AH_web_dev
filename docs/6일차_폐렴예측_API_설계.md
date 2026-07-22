@@ -85,7 +85,8 @@
 ### 5.4 Confidence
 
 - 공용 응답의 `confidence`는 `0.00~100.00` 범위의 백분율 값으로 반환한다.
-- 모델 추론 코드가 `0.0~1.0` 값을 반환하는 경우 Service 계층에서 백분율로 변환한다.
+- 모델 추론 코드는 softmax로 선택된 클래스의 확률을 `0.0~1.0` 범위로 반환한다.
+- Service 계층은 모델이 반환한 확률에 `100`을 곱하여 백분율로 변환한다.
 - 소수점 둘째 자리까지 저장 및 반환한다.
 
 ### 5.5 Heatmap
@@ -168,6 +169,22 @@ async def get_or_create_ai_analysis(
 - API에서 별도 이미지 파일을 전달받지 않는다.
 - Stage 5 규칙에 따라 진료기록 저장 시 업로드한 X-ray 1개를 사용한다.
 - X-ray가 존재하지 않으면 추론을 수행하지 않고 `422 XRAY_IMAGE_NOT_FOUND`를 반환한다.
+- 모델 입력은 RGB 3채널 이미지다.
+- 입력 크기는 `224x224`다.
+- 전처리는 `Resize((224, 224))` 후 ImageNet mean과 standard deviation으로 normalize한다.
+
+```python
+transforms.Compose(
+    [
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+        ),
+    ]
+)
+```
 
 ### 7.3 추론 코드 반환 형식
 
@@ -185,7 +202,7 @@ def predict_pneumonia(image_path: str | Path) -> dict:
     Returns:
         {
             "is_pneumonia": bool,
-            "confidence": float,
+            "confidence": float,  # softmax probability, 0.0~1.0
             "heatmap_url": str | None,
         }
     """
@@ -196,7 +213,7 @@ def predict_pneumonia(image_path: str | Path) -> dict:
 ```json
 {
   "is_pneumonia": true,
-  "confidence": 94.5,
+  "confidence": 0.945,
   "heatmap_url": null
 }
 ```
@@ -204,8 +221,18 @@ def predict_pneumonia(image_path: str | Path) -> dict:
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
 | `is_pneumonia` | bool | 폐렴 예측 여부 |
-| `confidence` | float | `0.00~100.00` 백분율 |
-| `heatmap_url` | string 또는 null | 생성된 heatmap URL |
+| `confidence` | float | softmax로 선택된 클래스의 확률, `0.0~1.0` |
+| `heatmap_url` | string 또는 null | 이번 Stage에서는 미구현이므로 `null` |
+
+클래스 매핑:
+
+| 클래스 인덱스 | 의미 |
+| --- | --- |
+| `0` | `normal` |
+| `1` | `pneumonia` |
+
+추론 결과에서 softmax 확률이 가장 높은 클래스를 선택한다. 선택된 클래스가 `1`이면 `is_pneumonia=true`, `0`이면 `false`로 반환한다.
+Service 계층은 추론 함수의 `confidence`에 `100`을 곱하고 소수점 둘째 자리로 반올림한 뒤 DB에 저장한다.
 
 API Service 호출 예시:
 
@@ -219,11 +246,11 @@ result = await asyncio.wait_for(
 ### 7.4 모델명 및 버전
 
 - 클라이언트는 모델명을 요청값으로 전달하지 않는다.
-- 서버가 현재 운영 모델명을 `team-model-v1`으로 고정하여 Service에 전달한다.
+- 서버가 현재 운영 모델명을 `v8-lite-densenet121-fp16`으로 고정하여 Service에 전달한다.
 - 모델 파일, 입력 전처리, 출력 해석 또는 threshold가 변경되면 모델 버전을 증가시킨다.
 
 ```python
-AI_MODEL_NAME = "team-model-v1"
+AI_MODEL_NAME = "v8-lite-densenet121-fp16"
 ```
 
 ---
@@ -238,8 +265,8 @@ AI_MODEL_NAME = "team-model-v1"
   "record_id": 10,
   "is_pneumonia": true,
   "confidence": 94.5,
-  "heatmap_url": "/media/heatmaps/record-10.png",
-  "ai_model": "team-model-v1",
+  "heatmap_url": null,
+  "ai_model": "v8-lite-densenet121-fp16",
   "created_at": "2026-07-22T10:00:00Z",
   "updated_at": null
 }
@@ -313,7 +340,7 @@ Path Parameters:
   "is_pneumonia": true,
   "confidence": 94.5,
   "heatmap_url": null,
-  "ai_model": "team-model-v1",
+  "ai_model": "v8-lite-densenet121-fp16",
   "created_at": "2026-07-22T10:00:00Z",
   "updated_at": null
 }
@@ -357,7 +384,7 @@ Query Parameters:
       "is_pneumonia": true,
       "confidence": 94.5,
       "heatmap_url": null,
-      "ai_model": "team-model-v1",
+      "ai_model": "v8-lite-densenet121-fp16",
       "created_at": "2026-07-22T10:00:00Z",
       "updated_at": null
     }
