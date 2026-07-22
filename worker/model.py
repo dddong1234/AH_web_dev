@@ -253,6 +253,8 @@ def predict_pneumonia(
     image_path: str | Path,
     record_id: int,
 ) -> dict[str, Any]:
+    """API Service에서 사용하는 폐렴 예측 공용 함수."""
+
     result = predictor.predict_image(
         image_path,
         record_id=record_id,
@@ -262,6 +264,7 @@ def predict_pneumonia(
     return {
         "is_pneumonia": result["pneumonia"],
         "confidence": result["confidence"],
+        "heatmap_path": result["heatmap_path"],
         "heatmap_url": result["heatmap_url"],
     }
 
