@@ -144,3 +144,21 @@ class FileStorageError(AppBaseException):
     status_code = 500
     code = "FILE_STORAGE_ERROR"
     message = "Failed to store X-Ray image"
+
+
+class XrayImageNotFoundError(AppBaseException):
+    status_code = 422
+    code = "XRAY_IMAGE_NOT_FOUND"
+    message = "X-Ray image not found"
+
+
+class AIInferenceFailedError(AppBaseException):
+    status_code = 500
+    code = "AI_INFERENCE_FAILED"
+    message = "AI inference failed"
+
+
+class HeatmapStorageFailedError(AppBaseException):
+    status_code = 500
+    code = "HEATMAP_STORAGE_FAILED"
+    message = "Failed to store Grad-CAM heatmap"

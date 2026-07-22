@@ -8,15 +8,23 @@ from sqlalchemy import (
     ForeignKey,
     Numeric,
     String,
+    UniqueConstraint,
     text,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db.databases import Base
 
 
 class AIAnalysisResult(Base):
     __tablename__ = "ai_analysis_results"
+    __table_args__ = (
+        UniqueConstraint(
+            "record_id",
+            "ai_model",
+            name="uq_ai_analysis_record_model",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(
         BigInteger,
@@ -26,7 +34,7 @@ class AIAnalysisResult(Base):
 
     record_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("medical_records.id"),
+        ForeignKey("medical_records.id", ondelete="CASCADE"),
         nullable=False,
     )
 
@@ -61,4 +69,9 @@ class AIAnalysisResult(Base):
         nullable=True,
         server_default=text("current_timestamp(0)"),
         onupdate=text("current_timestamp(0)"),
+    )
+
+    record = relationship(
+        "MedicalRecord",
+        back_populates="ai_analysis_results",
     )
