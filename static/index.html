@@ -19,9 +19,26 @@
         </nav>
     </header>
 
-    <main id="app">
-        <!-- 동적 컨텐츠가 여기에 렌더링됩니다 -->
-    </main>
+    <div class="app-layout">
+        <aside class="api-console card" aria-live="polite">
+            <div class="api-console-header">
+                <div>
+                    <span class="api-console-live">LIVE</span>
+                    <h2>API 응답</h2>
+                </div>
+                <div class="api-console-actions">
+                    <button type="button" id="api-console-expand">전체보기</button>
+                    <button type="button" id="api-console-clear">지우기</button>
+                </div>
+            </div>
+            <p id="api-console-status">요청을 실행하면 결과가 표시됩니다.</p>
+            <pre id="api-console-body">대기 중…</pre>
+        </aside>
+
+        <main id="app">
+            <!-- 동적 컨텐츠가 여기에 렌더링됩니다 -->
+        </main>
+    </div>
 
     <footer>
         <p>&copy; 2026 AI Health Diagnosis Support System</p>
