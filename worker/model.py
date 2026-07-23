@@ -253,8 +253,6 @@ def predict_pneumonia(
     image_path: str | Path,
     record_id: int,
 ) -> dict[str, Any]:
-    """API Service에서 사용하는 폐렴 예측 공용 함수."""
-
     result = predictor.predict_image(
         image_path,
         record_id=record_id,
@@ -271,24 +269,18 @@ def predict_pneumonia(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="V8 Lite 폐렴 예측")
-    parser.add_argument("--image", required=True, help="예측할 이미지 경로")
     parser.add_argument(
-        "--record-id",
-        type=int,
-        help="Grad-CAM 저장 폴더에 사용할 진료기록 ID",
+        "--image",
+        required=True,
+        help="예측할 이미지 경로",
     )
     parser.add_argument(
-        "--no-heatmap",
-        action="store_true",
-        help="Grad-CAM 이미지를 생성하지 않음",
+        "--record-id",
+        required=True,
+        type=int,
+        help="Grad-CAM 저장 폴더에 사용할 진료기록 ID",
     )
     args = parser.parse_args()
 
     load_prediction_model()
-    print(
-        predict_pneumonia(
-            args.image,
-            record_id=args.record_id,
-            generate_heatmap=not args.no_heatmap,
-        )
-    )
+    print(predict_pneumonia(args.image, args.record_id))
