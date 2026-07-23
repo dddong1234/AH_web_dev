@@ -55,3 +55,10 @@ class MedicalRecord(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+    ai_analysis_results = relationship(
+        "AIAnalysisResult",
+        back_populates="record",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

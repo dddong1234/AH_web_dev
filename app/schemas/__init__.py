@@ -1,3 +1,4 @@
+from app.schemas.ai_analysis import AIAnalysisListResponse, AIAnalysisResponse
 from app.schemas.auth import LoginRequest, TokenPayload, TokenResponse
 from app.schemas.common import DataResponse, ErrorResponse, OffsetLimitPage, OffsetLimitParams
 from app.schemas.medical_record import (
@@ -16,6 +17,8 @@ from app.schemas.patient import (
 )
 
 __all__ = [
+    "AIAnalysisListResponse",
+    "AIAnalysisResponse",
     "DataResponse",
     "ErrorResponse",
     "LoginRequest",
