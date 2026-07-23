@@ -52,6 +52,22 @@ def _get_predict_pneumonia():
     return predict_pneumonia
 
 
+def _cleanup_timed_out_prediction(
+    task: asyncio.Future[dict[str, Any]],
+) -> None:
+    try:
+        result = task.result()
+    except (asyncio.CancelledError, Exception):
+        return
+
+    if not isinstance(result, dict):
+        return
+
+    heatmap_path = result.get("heatmap_path")
+    if isinstance(heatmap_path, str) and heatmap_path:
+        _delete_heatmap_file(heatmap_path)
+
+
 class AIAnalysisService:
     @staticmethod
     async def get_or_create_ai_analysis(
@@ -88,13 +104,17 @@ class AIAnalysisService:
             raise XrayImageNotFoundError()
 
         predict_pneumonia = _get_predict_pneumonia()
-        try:
-            result: dict[str, Any] = await asyncio.to_thread(
+        inference_task = asyncio.create_task(
+            asyncio.to_thread(
                 predict_pneumonia,
                 image_path,
                 record_id,
             )
+        )
+        try:
+            result: dict[str, Any] = await asyncio.shield(inference_task)
         except asyncio.CancelledError:
+            inference_task.add_done_callback(_cleanup_timed_out_prediction)
             raise
         except Exception as exc:
             raise AIInferenceFailedError() from exc

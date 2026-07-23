@@ -1,4 +1,6 @@
+import asyncio
 import tempfile
+import time
 import unittest
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -228,6 +230,72 @@ class AIAnalysisServiceTest(unittest.IsolatedAsyncioTestCase):
 
             self.assertFalse(absolute_heatmap.exists())
             db.rollback.assert_awaited_once()
+
+    async def test_heatmap_is_deleted_after_inference_timeout(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            upload_root = Path(temp_dir) / "uploads"
+            xray_path = upload_root / "xrays" / "1" / "source.png"
+            xray_path.parent.mkdir(parents=True)
+            xray_path.write_bytes(b"xray")
+
+            relative_heatmap = "heatmaps/10/timed-out.png"
+            absolute_heatmap = upload_root / relative_heatmap
+
+            def slow_predict(_image_path: Path, record_id: int):
+                time.sleep(0.05)
+                absolute_heatmap.parent.mkdir(parents=True)
+                absolute_heatmap.write_bytes(b"png")
+                return {
+                    "is_pneumonia": True,
+                    "confidence": 0.95,
+                    "heatmap_path": relative_heatmap,
+                    "heatmap_url": f"/uploads/{relative_heatmap}",
+                }
+
+            create_result = AsyncMock()
+            with (
+                patch.object(service_module, "UPLOAD_ROOT", upload_root),
+                patch.object(
+                    service_module,
+                    "_get_predict_pneumonia",
+                    return_value=slow_predict,
+                ),
+                patch.object(
+                    AIAnalysisRepository,
+                    "get_by_record_and_model",
+                    new=AsyncMock(return_value=None),
+                ),
+                patch.object(
+                    AIAnalysisRepository,
+                    "get_first_xray",
+                    new=AsyncMock(
+                        return_value=SimpleNamespace(
+                            image_url="xrays/1/source.png"
+                        )
+                    ),
+                ),
+                patch.object(
+                    AIAnalysisRepository,
+                    "create",
+                    new=create_result,
+                ),
+            ):
+                service_task = asyncio.create_task(
+                    AIAnalysisService.get_or_create_ai_analysis(
+                        db=AsyncMock(),
+                        record_id=10,
+                        model_name=MODEL_NAME,
+                    )
+                )
+                await asyncio.sleep(0.01)
+                service_task.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await service_task
+
+                await asyncio.sleep(0.1)
+
+            self.assertFalse(absolute_heatmap.exists())
+            create_result.assert_not_awaited()
 
 
 if __name__ == "__main__":
