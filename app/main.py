@@ -1,4 +1,6 @@
+import asyncio
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -16,7 +18,20 @@ from app.apis.users import router as users_router
 from app.core.auth import register_exception_handlers
 from app.apis.medical_record_reads import router as medical_record_reads_router
 
-app = FastAPI()
+
+def _preload_prediction_model() -> None:
+    from worker.model import load_prediction_model
+
+    load_prediction_model()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    await asyncio.to_thread(_preload_prediction_model)
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 register_exception_handlers(app)
 app.include_router(auth_router)
 app.include_router(practice_router)
