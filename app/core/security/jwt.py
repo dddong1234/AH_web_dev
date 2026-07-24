@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
@@ -54,13 +54,16 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
+KST = timezone(timedelta(hours=9))
+
+
 def get_refresh_token_expires_at() -> datetime:
-    expires_at = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    expires_at = datetime.now(KST) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     return expires_at.replace(tzinfo=None)
 
 
 def _create_token(user_id: int, token_type: str, expires_delta: timedelta) -> str:
-    now = datetime.now(UTC)
+    now = datetime.now(KST)
     payload = {
         USER_ID_CLAIM: user_id,
         TOKEN_TYPE_CLAIM: token_type,

@@ -22,7 +22,7 @@ async function login(email, password) {
             localStorage.setItem('isLoggedIn', 'true');
             await checkAuth();
             
-            if (state.user && state.user.role === 'pending') {
+            if (state.user && state.user.role === 'PENDING') {
                 navigate('/');
             } else {
                 navigate('/patients');
@@ -64,9 +64,8 @@ async function checkAuth() {
     if (!state.token && localStorage.getItem('isLoggedIn') === 'true') {
         // 토큰은 없지만 로그인 상태 기록이 있으므로 리프레시 시도
         try {
-            const refreshResponse = await apis.refresh();
-            if (refreshResponse.ok) {
-                const data = await refreshResponse.json();
+            const data = await apis.refresh();
+            if (data) {
                 state.token = data.access_token;
                 localStorage.setItem('token', state.token);
             } else {
@@ -96,7 +95,7 @@ function updateNav() {
     if (state.user) {
         document.body.classList.add('logged-in');
         
-        if (state.user.role === 'admin') {
+        if (state.user.role === 'ADMIN') {
             adminLinkContainer.innerHTML = `<li><a href="/admin/users" onclick="route(event)" class="nav-btn">회원 관리</a></li>`;
         } else {
             adminLinkContainer.innerHTML = '';
@@ -140,13 +139,13 @@ async function navigate(path, pushState = true) {
             return;
         }
 
-        if (state.user && state.user.role === 'pending' && !publicPaths.includes(pathname)) {
+        if (state.user && state.user.role === 'PENDING' && !publicPaths.includes(pathname)) {
             utils.showAlert('승인 대기 중인 사용자입니다. 관리자의 승인 이후에 사용가능합니다.', 'error', '접근 제한');
             await navigate('/');
             return;
         }
 
-        if (pathname === '/admin/users' && state.user?.role !== 'admin') {
+        if (pathname === '/admin/users' && state.user?.role !== 'ADMIN') {
             utils.showAlert('관리자 권한이 필요합니다.', 'error', '접근 제한');
             await navigate('/');
             return;
@@ -169,12 +168,15 @@ async function navigate(path, pushState = true) {
             pages.renderMyPage();
         } else if (pathname === '/admin/users') {
             await pages.renderAdminUsers(searchParams);
+        } else if (
+            pathname.startsWith('/patients/')
+            && pathname.includes('/medical-records/')
+        ) {
+            const segments = pathname.split('/');
+            await pages.renderRecordDetail(segments[2], segments[4]);
         } else if (pathname.startsWith('/patients/')) {
             const patientId = pathname.split('/')[2];
             await pages.renderPatientDetail(patientId);
-        } else if (pathname.startsWith('/medical-records/')) {
-            const recordId = pathname.split('/')[2];
-            await pages.renderRecordDetail(recordId);
         } else {
             app.innerHTML = '<div class="card"><h2>404</h2><p>페이지를 찾을 수 없습니다.</p></div>';
         }
@@ -188,6 +190,23 @@ window.onpopstate = () => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    const expandButton = document.getElementById('api-console-expand');
+    if (expandButton) {
+        expandButton.addEventListener('click', () => {
+            const expanded = document.body.classList.toggle('api-console-expanded');
+            expandButton.textContent = expanded ? '접기' : '전체보기';
+        });
+    }
+
+    const clearButton = document.getElementById('api-console-clear');
+    if (clearButton) {
+        clearButton.addEventListener('click', () => {
+            apis.responseHistory = [];
+            document.getElementById('api-console-status').textContent = '요청을 실행하면 결과가 표시됩니다.';
+            document.getElementById('api-console-status').className = '';
+            document.getElementById('api-console-body').textContent = '대기 중…';
+        });
+    }
     checkAuth().then(() => {
         navigate(window.location.pathname + window.location.search, false);
     });
