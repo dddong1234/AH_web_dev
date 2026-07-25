@@ -112,7 +112,7 @@ const pages = {
                 <td>${r.id}</td>
                 <td>${r.chart_number}</td>
                 <td>${r.symptoms}</td>
-                <td>${new Date(r.created_at + 'Z').toLocaleString('ko-KR')}</td>
+                <td>${utils.formatDateTime(r.created_at)}</td>
                 <td><button onclick="navigate('/patients/${patientId}/medical-records/${r.id}')">상세보기</button></td>
             </tr>
         `).join('');
@@ -153,7 +153,7 @@ const pages = {
         document.getElementById('record-id').innerText = record.id;
         document.getElementById('chart-number').innerText = record.chart_number;
         document.getElementById('symptoms-text').innerText = record.symptoms;
-        document.getElementById('created-at').innerText = new Date(record.created_at + 'Z').toLocaleString('ko-KR');
+        document.getElementById('created-at').innerText = utils.formatDateTime(record.created_at);
         document.getElementById('xray-img').src = record.xray_url;
         
         document.getElementById('predict-btn').onclick = () => this.handlePredict(patientId, recordId);
@@ -176,7 +176,7 @@ const pages = {
                     <tbody>
                         ${analyses.map(a => `
                             <tr class="${a.is_pneumonia ? 'result-positive' : 'result-negative'}">
-                                <td>${new Date(a.created_at + 'Z').toLocaleString('ko-KR')}</td>
+                                <td>${utils.formatDateTime(a.created_at)}</td>
                                 <td><strong>${a.is_pneumonia ? 'Positive' : 'Negative'}</strong></td>
                                 <td>${a.confidence}%</td>
                                 <td>${a.ai_model}</td>
