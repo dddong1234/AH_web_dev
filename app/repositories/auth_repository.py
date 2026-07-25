@@ -1,4 +1,6 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone, timedelta
+
+KST = timezone(timedelta(hours=9))
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -88,6 +90,6 @@ class AuthRepository:
         db: AsyncSession,
         refresh_token: RefreshToken,
     ) -> RefreshToken:
-        refresh_token.revoked_at = datetime.now(UTC).replace(tzinfo=None)
+        refresh_token.revoked_at = datetime.now(KST).replace(tzinfo=None)
         await db.flush()
         return refresh_token

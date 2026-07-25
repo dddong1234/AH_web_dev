@@ -1,4 +1,6 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
+KST = timezone(timedelta(hours=9))
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,7 +39,7 @@ class MedicalRecordRepository:
             record_id=record.id,
             uploader_id=uploader_id,
             image_url=image_relative_path,
-            shooting_datetime=datetime.now(timezone.utc),
+            shooting_datetime=datetime.now(KST).replace(tzinfo=None),
         )
         db.add(xray)
         await db.flush()

@@ -3,15 +3,26 @@ services:
     build:
       context: .
       dockerfile: app/Dockerfile
-    entrypoint: sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    entrypoint: >
+      sh -c "uv run alembic upgrade head &&
+      uv run python scripts/seed_admin.py &&
+      uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
+    environment:
+      DB_USER: ${DB_USER:-ai_health}
+      DB_PASSWORD: ${DB_PASSWORD:-password1234}
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: ${DB_NAME:-ai_health}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-before-production}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin1234!}
     volumes:
-      - ./app:/app
-      - static_volume:/app/static
+      - uploads_volume:/app/uploads
       - media_volume:/app/media
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/healthcheck || exit 1"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthcheck')"]
       interval: 5s
       timeout: 5s
       retries: 3
@@ -23,11 +34,10 @@ services:
     volumes:
       - mysql_volume:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_PORT: ${DB_PORT}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root-password1234}
+      MYSQL_DATABASE: ${DB_NAME:-ai_health}
+      MYSQL_USER: ${DB_USER:-ai_health}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password1234}
     ports:
       - "${DB_PORT}:3306"
     healthcheck:
@@ -38,5 +48,5 @@ services:
 
 volumes:
   mysql_volume:
-  static_volume:
   media_volume:
+  uploads_volume:

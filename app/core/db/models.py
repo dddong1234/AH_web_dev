@@ -1,5 +1,5 @@
 import uuid as uuid_pkg
-from datetime import UTC, datetime
+from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import Boolean, DateTime, text
 from sqlalchemy.dialects.mysql import CHAR
@@ -13,12 +13,15 @@ class UUIDMixin:
     )
 
 
+KST = timezone(timedelta(hours=9))
+
+
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now(UTC), server_default=text("current_timestamp(0)")
+        DateTime, default=lambda: datetime.now(KST).replace(tzinfo=None), server_default=text("current_timestamp(0)")
     )
     updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime, nullable=True, onupdate=datetime.now(UTC), server_default=text("current_timestamp(0)")
+        DateTime, nullable=True, onupdate=lambda: datetime.now(KST).replace(tzinfo=None), server_default=text("current_timestamp(0)")
     )
 
 

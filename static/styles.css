@@ -103,10 +103,19 @@ nav ul {
     color: white !important;
 }
 
-main {
+.app-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.75fr) minmax(0, 1.65fr);
+    gap: 1.5rem;
     padding: 2rem;
-    max-width: 1200px;
+    max-width: 1440px;
     margin: 0 auto;
+    align-items: start;
+}
+
+main {
+    padding: 0;
+    min-width: 0;
     min-height: calc(100vh - 160px);
 }
 
@@ -122,6 +131,78 @@ main {
     max-width: 500px;
     margin-left: auto;
     margin-right: auto;
+}
+
+.api-console {
+    position: sticky;
+    top: 1.5rem;
+    min-width: 0;
+    margin: 0;
+    background: #172033;
+    color: #edf4ff;
+}
+
+.api-console-header,
+.api-console-header > div:not(.api-console-actions),
+.api-console-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.api-console-header h2 {
+    margin: 0;
+}
+
+.api-console-live {
+    color: #5eead4;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.api-console-header button {
+    padding: 0.4rem 0.65rem;
+    background: transparent;
+    color: #9fb0ca;
+}
+
+.api-console-actions {
+    justify-content: flex-end;
+}
+
+#api-console-status {
+    color: #9fb0ca;
+}
+
+#api-console-status.ok {
+    color: #5eead4;
+}
+
+#api-console-status.error {
+    color: #fb7185;
+}
+
+#api-console-body {
+    min-height: 18rem;
+    max-height: calc(100vh - 15rem);
+    overflow: auto;
+    padding: 1rem;
+    border-radius: 8px;
+    background: #0b1120;
+    color: #bfdbfe;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.api-console-expanded .api-console {
+    position: static;
+}
+
+.api-console-expanded #api-console-body {
+    max-height: none;
+    overflow: visible;
 }
 
 form {
@@ -272,7 +353,9 @@ footer {
     height: 100%;
     background-color: rgba(0,0,0,0.5);
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    padding: 1rem;
+    box-sizing: border-box;
     backdrop-filter: blur(2px);
 }
 
@@ -290,6 +373,8 @@ footer {
     animation: modal-fade-in 0.3s ease-out;
     position: relative;
     text-align: center;
+    margin-left: clamp(0px, calc((min(100vw, 823px) - 400px) / 2), 200px);
+    box-sizing: border-box;
 }
 
 @keyframes modal-fade-in {
@@ -343,4 +428,15 @@ footer {
 .status-badge.error {
     background-color: #ffdce0;
     color: var(--danger-color);
+}
+
+@media (max-width: 900px) {
+    .app-layout {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+
+    .api-console {
+        position: static;
+    }
 }
