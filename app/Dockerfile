@@ -1,22 +1,22 @@
 FROM python:3.13-slim
 
 WORKDIR /app
+
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-dev --no-install-project --extra app
 
 COPY app ./app
-COPY worker ./worker
+COPY shared ./shared
 COPY static ./static
 COPY scripts ./scripts
 COPY alembic ./alembic
 COPY alembic.ini ./
-
-RUN uv sync --frozen --no-dev --no-install-project
 
 EXPOSE 8000
 

@@ -1,0 +1,3 @@
+services:
+  ai-worker:
+    gpus: all

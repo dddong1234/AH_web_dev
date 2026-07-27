@@ -9,14 +9,29 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  ai-worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   fastapi:
     build:
       context: .
       dockerfile: app/Dockerfile
     entrypoint: >
-      sh -c "uv run alembic upgrade head &&
-      uv run python -m scripts.seed_admin &&
-      uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      sh -c "alembic upgrade head &&
+      python -m scripts.seed_admin &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
     environment:
@@ -41,6 +56,7 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
+
   mysql:
     image: mysql:8.0
     volumes:
@@ -53,10 +69,9 @@ services:
     ports:
       - "${DB_PORT}:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 5
-
 
 volumes:
   mysql_volume:
