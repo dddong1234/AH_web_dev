@@ -114,7 +114,6 @@ def consume_next_task(redis_client: Redis, *, timeout: int = 0) -> bool:
             AI_ANALYSIS_QUEUE_KEY,
         )
         return False
-
     if queued_item is None:
         return False
 
