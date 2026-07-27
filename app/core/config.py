@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     COOKIE_SECURE: bool = False
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_CONNECT_TIMEOUT_SECONDS: float = 1.0
+    REDIS_SOCKET_TIMEOUT_SECONDS: float = 5.0
+    AI_ANALYSIS_TIMEOUT_SECONDS: float = 3.0
 
     model_config = {
         "env_file": ".env",

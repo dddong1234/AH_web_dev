@@ -104,6 +104,12 @@ class RequestTimeoutError(AppBaseException):
     message = "요청 처리 시간이 허용 시간(3초)을 초과하였습니다."
 
 
+class AIQueueUnavailableError(AppBaseException):
+    status_code = 503
+    code = "AI_QUEUE_UNAVAILABLE"
+    message = "AI 분석 서비스를 일시적으로 사용할 수 없습니다."
+
+
 class PatientNotFoundError(AppBaseException):
     status_code = 404
     code = "PATIENT_NOT_FOUND"

@@ -1,4 +1,3 @@
-import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query, status
@@ -9,7 +8,6 @@ from app.apis.dependencies import (
     get_patient_or_404,
     require_staff_or_admin,
 )
-from app.core.auth.exceptions import RequestTimeoutError
 from app.core.db.databases import async_get_db
 from app.models.medical_records import MedicalRecord
 from app.models.patients import Patients
@@ -20,14 +18,13 @@ from app.schemas.ai_analysis import (
 )
 from app.schemas.common import ErrorResponse
 from app.services.ai_analysis_service import AIAnalysisService
+from shared.ai_queue_protocol import AI_MODEL_NAME
 
 
 router = APIRouter(
     prefix="/api/v1/patients",
     tags=["AI Analyses"],
 )
-
-AI_MODEL_NAME = "v8-lite-densenet121-fp16"
 
 DbSession = Annotated[AsyncSession, Depends(async_get_db)]
 CurrentStaffUser = Annotated[User, Depends(require_staff_or_admin)]
@@ -59,6 +56,10 @@ ERROR_RESPONSES = {
         "model": ErrorResponse,
         "description": "AI 추론, Grad-CAM 생성 또는 저장 실패",
     },
+    503: {
+        "model": ErrorResponse,
+        "description": "AI 분석 큐 연결 실패",
+    },
     504: {
         "model": ErrorResponse,
         "description": "요청 처리 시간 초과",
@@ -81,19 +82,11 @@ async def get_or_create_ai_analysis(
     _patient: CurrentPatient,
     _record: CurrentMedicalRecord,
 ) -> AIAnalysisResponse:
-    try:
-        result = await asyncio.wait_for(
-            AIAnalysisService.get_or_create_ai_analysis(
-                db=db,
-                record_id=record_id,
-                model_name=AI_MODEL_NAME,
-            ),
-            timeout=3.0,
-        )
-    except TimeoutError as exc:
-        raise RequestTimeoutError() from exc
-
-    return AIAnalysisResponse.model_validate(result)
+    return await AIAnalysisService.get_or_create_ai_analysis(
+        db=db,
+        record_id=record_id,
+        model_name=AI_MODEL_NAME,
+    )
 
 
 @router.get(

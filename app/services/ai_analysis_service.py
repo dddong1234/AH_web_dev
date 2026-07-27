@@ -1,71 +1,66 @@
-import asyncio
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
-from typing import Any
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.exceptions import (
     AIInferenceFailedError,
+    AIQueueUnavailableError,
     AppBaseException,
     HeatmapStorageFailedError,
+    RequestTimeoutError,
     XrayImageNotFoundError,
 )
-from app.repositories.ai_analysis_repository import AIAnalysisRepository
-from app.schemas.ai_analysis import (
-    AIAnalysisListResponse,
-    AIAnalysisResponse,
+from app.core.config import settings
+from app.core.redis_client import (
+    AIAnalysisResultTimeoutError,
+    RedisClientError,
+    enqueue_and_wait_for_result,
 )
+from app.repositories.ai_analysis_repository import AIAnalysisRepository
+from app.schemas.ai_analysis import AIAnalysisListResponse, AIAnalysisResponse
+from shared.ai_queue_protocol import AIAnalysisResultMessage, make_task_message
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 UPLOAD_ROOT = PROJECT_ROOT / "uploads"
 
 
-def _delete_heatmap_file(relative_path: str) -> None:
-    target = (UPLOAD_ROOT / relative_path).resolve()
-    heatmap_root = (UPLOAD_ROOT / "heatmaps").resolve()
+def _validate_success_result(
+    result: AIAnalysisResultMessage,
+    *,
+    record_id: int,
+    model_name: str,
+) -> tuple[bool, Decimal, str]:
+    if result.record_id != record_id or result.model_name != model_name:
+        raise AIInferenceFailedError("AI worker returned a mismatched result.")
+    if result.status == "failed":
+        raise AIInferenceFailedError(result.error or "AI worker inference failed.")
+    if result.status != "succeeded":
+        raise AIInferenceFailedError("AI worker returned an invalid final status.")
 
-    if heatmap_root not in target.parents:
-        return
+    if not isinstance(result.is_pneumonia, bool):
+        raise AIInferenceFailedError("AI worker returned an invalid prediction.")
+    if result.confidence is None or not 0.0 <= result.confidence <= 1.0:
+        raise AIInferenceFailedError("AI worker returned an invalid confidence.")
+    if not result.heatmap_path:
+        raise HeatmapStorageFailedError()
 
-    try:
-        if target.is_file():
-            target.unlink()
-    except OSError:
-        return
+    heatmap_root = (UPLOAD_ROOT / "heatmaps" / str(record_id)).resolve()
+    saved_heatmap = (UPLOAD_ROOT / result.heatmap_path).resolve()
+    if (
+        saved_heatmap.parent != heatmap_root
+        or saved_heatmap.suffix.lower() != ".png"
+        or not saved_heatmap.is_file()
+    ):
+        raise HeatmapStorageFailedError()
 
-    parent = target.parent
-    try:
-        if parent != heatmap_root and parent.exists() and not any(parent.iterdir()):
-            parent.rmdir()
-    except OSError:
-        return
-
-
-def _get_predict_pneumonia():
-    try:
-        from worker.model import predict_pneumonia
-    except (ImportError, OSError, RuntimeError) as exc:
-        raise AIInferenceFailedError() from exc
-    return predict_pneumonia
-
-
-def _cleanup_timed_out_prediction(
-    task: asyncio.Future[dict[str, Any]],
-) -> None:
-    try:
-        result = task.result()
-    except (asyncio.CancelledError, Exception):
-        return
-
-    if not isinstance(result, dict):
-        return
-
-    heatmap_path = result.get("heatmap_path")
-    if isinstance(heatmap_path, str) and heatmap_path:
-        _delete_heatmap_file(heatmap_path)
+    confidence_percent = Decimal(str(result.confidence * 100)).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP,
+    )
+    return result.is_pneumonia, confidence_percent, result.heatmap_path
 
 
 class AIAnalysisService:
@@ -82,13 +77,9 @@ class AIAnalysisService:
                 record_id=record_id,
                 model_name=model_name,
             )
-        except SQLAlchemyError as exc:
-            raise AppBaseException() from exc
+            if existing is not None:
+                return AIAnalysisResponse.model_validate(existing)
 
-        if existing is not None:
-            return AIAnalysisResponse.model_validate(existing)
-
-        try:
             xray = await AIAnalysisRepository.get_first_xray(
                 db=db,
                 record_id=record_id,
@@ -103,50 +94,25 @@ class AIAnalysisService:
         if not image_path.is_file():
             raise XrayImageNotFoundError()
 
-        predict_pneumonia = _get_predict_pneumonia()
-        inference_task = asyncio.create_task(
-            asyncio.to_thread(
-                predict_pneumonia,
-                image_path,
-                record_id,
-            )
+        task = make_task_message(
+            record_id=record_id,
+            model_name=model_name,
+            image_path=str(xray.image_url),
         )
         try:
-            result: dict[str, Any] = await asyncio.shield(inference_task)
-        except asyncio.CancelledError:
-            inference_task.add_done_callback(_cleanup_timed_out_prediction)
-            raise
-        except Exception as exc:
-            raise AIInferenceFailedError() from exc
+            result = await enqueue_and_wait_for_result(
+                task,
+                timeout_seconds=settings.AI_ANALYSIS_TIMEOUT_SECONDS,
+            )
+        except AIAnalysisResultTimeoutError as exc:
+            raise RequestTimeoutError() from exc
+        except RedisClientError as exc:
+            raise AIQueueUnavailableError() from exc
 
-        is_pneumonia = result.get("is_pneumonia")
-        confidence = result.get("confidence")
-        heatmap_path = result.get("heatmap_path")
-
-        if not isinstance(heatmap_path, str) or not heatmap_path:
-            raise HeatmapStorageFailedError()
-
-        heatmap_root = (UPLOAD_ROOT / "heatmaps" / str(record_id)).resolve()
-        saved_heatmap = (UPLOAD_ROOT / heatmap_path).resolve()
-        if saved_heatmap.parent != heatmap_root or saved_heatmap.suffix.lower() != ".png":
-            raise HeatmapStorageFailedError()
-
-        if not saved_heatmap.is_file():
-            raise HeatmapStorageFailedError()
-
-        if not isinstance(is_pneumonia, bool):
-            _delete_heatmap_file(heatmap_path)
-            raise AIInferenceFailedError()
-        if not isinstance(confidence, (int, float)) or isinstance(confidence, bool):
-            _delete_heatmap_file(heatmap_path)
-            raise AIInferenceFailedError()
-        if not 0.0 <= float(confidence) <= 1.0:
-            _delete_heatmap_file(heatmap_path)
-            raise AIInferenceFailedError()
-
-        confidence_percent = Decimal(str(float(confidence) * 100)).quantize(
-            Decimal("0.01"),
-            rounding=ROUND_HALF_UP,
+        is_pneumonia, confidence, heatmap_path = _validate_success_result(
+            result,
+            record_id=record_id,
+            model_name=model_name,
         )
 
         try:
@@ -154,7 +120,7 @@ class AIAnalysisService:
                 db=db,
                 record_id=record_id,
                 is_pneumonia=is_pneumonia,
-                confidence=confidence_percent,
+                confidence=confidence,
                 heatmap_path=heatmap_path,
                 model_name=model_name,
             )
@@ -162,18 +128,19 @@ class AIAnalysisService:
             await db.refresh(analysis)
         except IntegrityError:
             await db.rollback()
-            _delete_heatmap_file(heatmap_path)
-            existing = await AIAnalysisRepository.get_by_record_and_model(
-                db=db,
-                record_id=record_id,
-                model_name=model_name,
-            )
+            try:
+                existing = await AIAnalysisRepository.get_by_record_and_model(
+                    db=db,
+                    record_id=record_id,
+                    model_name=model_name,
+                )
+            except SQLAlchemyError as exc:
+                raise AppBaseException() from exc
             if existing is None:
                 raise AppBaseException()
             return AIAnalysisResponse.model_validate(existing)
         except SQLAlchemyError as exc:
             await db.rollback()
-            _delete_heatmap_file(heatmap_path)
             raise AppBaseException() from exc
 
         return AIAnalysisResponse.model_validate(analysis)
