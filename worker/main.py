@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from redis import Redis
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from shared.ai_queue_protocol import (
     AI_ANALYSIS_QUEUE_KEY,
@@ -102,10 +103,18 @@ def process_task(redis_client: Redis, task: AIAnalysisTaskMessage) -> None:
 def consume_next_task(redis_client: Redis, *, timeout: int = 0) -> bool:
     """Atomically take and process one task from the shared Redis queue."""
 
-    queued_item = redis_client.brpop(
-        AI_ANALYSIS_QUEUE_KEY,
-        timeout=timeout,
-    )
+    try:
+        queued_item = redis_client.brpop(
+            AI_ANALYSIS_QUEUE_KEY,
+            timeout=timeout,
+        )
+    except RedisTimeoutError:
+        logger.warning(
+            "Redis BRPOP timed out while waiting for queue=%s; continuing",
+            AI_ANALYSIS_QUEUE_KEY,
+        )
+        return False
+
     if queued_item is None:
         return False
 
