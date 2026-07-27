@@ -16,4 +16,6 @@ def create_redis_client(redis_url: str | None = None) -> Redis:
     return Redis.from_url(
         redis_url or os.getenv("REDIS_URL", DEFAULT_REDIS_URL),
         decode_responses=True,
+        socket_timeout=None,
+        health_check_interval=30,
     )
