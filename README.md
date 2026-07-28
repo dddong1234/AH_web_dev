@@ -12,7 +12,7 @@
 
 ```bash
 cp .env.example .env
-uv sync
+uv sync --all-extras
 docker compose up -d mysql
 uv run alembic upgrade head
 uv run python scripts/seed_admin.py
